@@ -1,10 +1,12 @@
 import java.util.*;
+import java.util.concurrent.*;
 
 public class Main {
 
-    public static void main(String[] args) throws InterruptedException {
-        Runnable myRunnable;
-        List<Thread> threads = new ArrayList<>();
+    public static void main(String[] args) throws InterruptedException, ExecutionException {
+        Callable<String> myCallable;
+        final ExecutorService threadPool = Executors.newFixedThreadPool(25);
+        List<Future> futures = new ArrayList<>();
         //этот код ниже менять нельзя!
         String[] texts = new String[25];
         for (int i = 0; i < texts.length; i++) {
@@ -12,7 +14,7 @@ public class Main {
         }
         long startTs = System.currentTimeMillis();
         for (String text : texts) {
-            myRunnable = () -> {
+            myCallable = () -> {
                 int maxSize = 0;
                 for (int i = 0; i < text.length(); i++) {
                     for (int j = 0; j < text.length(); j++) {
@@ -32,15 +34,16 @@ public class Main {
                     }
                 }
                 System.out.println(text.substring(0, 100) + " -> " + maxSize);
+                return text.substring(0, 100) + " -> " + maxSize;
             };
-            threads.add(new Thread(myRunnable));
+            futures.add(threadPool.submit(myCallable));
         }
-        for (Thread thread : threads) {
-            thread.start();
-            thread.join(0);       // зависаем, ждём когда поток объект которого лежит в thread завершится
+        for (Future future : futures) {
+            future.get();
         }
         long endTs = System.currentTimeMillis();
         System.out.println("Time: " + (endTs - startTs) + "ms");
+        threadPool.shutdown();
     }
 
     public static String generateText(String letters, int length) {
